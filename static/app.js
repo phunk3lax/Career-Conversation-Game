@@ -80,15 +80,16 @@ async function findRoom(code) {
 }
 function renderJoin(){
   let teams=room.teams;
-  app(`<section class="hero"><div class="eyebrow">Welcome to room ${h(room.code)}</div><h1>Choose your team.</h1><p>Join with your first name, then work with your team to write one manager response per round. You can change the response together before voting begins.</p></section>
-    ${card(`<div class="grid2"><div><div class="field" style="margin-top:0"><label for="playerName">Your first name</label><input class="input" id="playerName" maxlength="30" placeholder="Enter your name" autocomplete="given-name"></div><div class="kicker" style="margin-bottom:12px">Select a team (maximum four people)</div><div class="teamlist" id="teamSelect">${teams.map((t,i)=>`<label class="teamtile ${t.count>=4?'full':''}" data-team="${h(t.id)}"><span><input type="radio" name="team" value="${h(t.id)}" ${t.count>=4?'disabled':''} style="margin-right:8px"> <strong>${h(t.name)}</strong></span><span class="small muted">${t.count}/4 joined</span></label>`).join('')}</div><button class="btn full" style="margin-top:20px" data-action="join">Join team <span>→</span></button><button class="btn ghost full" style="margin-top:9px" data-action="reload-room">Refresh team availability</button></div><div class="banner"><strong>How the game works</strong><p class="small muted">1. Discuss the employee's situation with your teammates.</p><p class="small muted">2. One member submits your team's response.</p><p class="small muted">3. Vote for another team's answer.</p><p class="small muted">4. Compare coaching techniques and see the scoreboard.</p><hr class="divider"><p class="small muted" style="margin-bottom:0">If the facilitator has already started, you can still join an available team.</p></div></div>`)}`);
+  app(`<section class="hero"><div class="eyebrow">Welcome to room ${h(room.code)}</div><h1>Choose your team.</h1><p>Enter your name and choose a team. The first member can give the team a custom name; everyone else joins using their own name so the full team roster is displayed.</p></section>
+    ${card(`<div class="grid2"><div><div class="field" style="margin-top:0"><label for="playerName">Your name</label><input class="input" id="playerName" maxlength="50" placeholder="First and last name" autocomplete="name"></div><div class="kicker" style="margin-bottom:12px">Select a team (maximum four people)</div><div class="teamlist" id="teamSelect">${teams.map((t,i)=>`<label class="teamtile ${t.count>=4?'full':''}" data-team="${h(t.id)}"><span><input type="radio" name="team" value="${h(t.id)}" ${t.count>=4?'disabled':''} style="margin-right:8px"> <strong>${h(t.name)}</strong></span><span class="small muted">${t.count}/4 joined</span></label>`).join('')}</div><div id="joinTeamNameField" class="field" hidden><label for="joinTeamName">Give your team a name (optional)</label><input class="input" id="joinTeamName" maxlength="40" placeholder="e.g. The Growth Gurus" autocomplete="off"><p class="small muted" style="margin:8px 0 0">First person to join this team can choose its name. You can also change it in the lobby.</p></div><button class="btn full" style="margin-top:20px" data-action="join">Join team <span>→</span></button><button class="btn ghost full" style="margin-top:9px" data-action="reload-room">Refresh team availability</button></div><div class="banner"><strong>How the game works</strong><p class="small muted">1. Discuss the employee's situation with your teammates.</p><p class="small muted">2. One member submits your team's response.</p><p class="small muted">3. Vote for another team's answer.</p><p class="small muted">4. Compare coaching techniques and see the scoreboard.</p><hr class="divider"><p class="small muted" style="margin-bottom:0">If the facilitator has already started, you can still join an available team.</p></div></div>`)}`);
 }
 async function doJoin(){
   const name=document.querySelector('#playerName')?.value.trim();
   const team=document.querySelector('input[name=team]:checked')?.value;
+  const team_name=document.querySelector('#joinTeamNameField:not([hidden]) #joinTeamName')?.value.trim() || '';
   if(!name||!team){notify('Enter your name and select a team.');return;}
   try{
-    const result=await api('join',{code:credentials.code,name,team});
+    const result=await api('join',{code:credentials.code,name,team,team_name});
     localStorage.setItem(`cc-member-${credentials.code}`,result.member_id);
     mode='player';credentials={code:result.code,member_id:result.member_id};lastSignature='';draft='';dirty=false;
     await refresh(true);
@@ -116,7 +117,7 @@ function hostOverview(){
 }
 function participantOverview(){
  const team=game.teams.find(t=>t.id===game.my_team);
- return `<div class="layouthead"><div><span class="pill green">${h(team?.name || 'Your team')}</span><span class="pill gray" style="margin-left:6px">${h(phaseLabel())}</span><h1 style="margin-top:12px">${game.phase==='lobby'?'Ready when you are.':game.phase==='finished'?'Great work!':'Your next coaching challenge'}</h1></div><span class="small muted">Room ${h(game.code)}</span></div>`;
+ return `<div class="layouthead"><div><span class="pill green">${h(team?.name || 'Your team')}</span><span class="pill gray" style="margin-left:6px">${h(phaseLabel())}</span><h1 style="margin-top:12px">${game.phase==='lobby'?'Ready when you are.':game.phase==='finished'?'Great work!':'Your next coaching challenge'}</h1><p class="small muted" style="margin:7px 0 0">Team members: ${h(team?.members?.join(', ') || game.my_name || '')}</p></div><span class="small muted">Room ${h(game.code)}</span></div>`;
 }
 function teamRoster(){
  return card(`<div class="votehead"><h3 style="margin:0">Team roster</h3><span class="small muted">${game.teams.reduce((n,t)=>n+t.count,0)} / ${game.teams.length*4} joined</span></div><div class="teamlist" style="margin-top:14px">${game.teams.map(t=>`<div class="teamrow"><div><strong>${h(t.name)}</strong><div class="small muted">${t.members.length?h(t.members.join(', ')):'Waiting for teammates'}</div></div><span class="pill ${t.count>=4?'green':'gray'}">${t.count}/4</span></div>`).join('')}</div>`,'flat');
@@ -176,9 +177,13 @@ function grading(){
   `<div class="banner"><strong>✦ AI coaching scores</strong> <button class="btn smallbtn" data-action="ai-score">Score submissions with AI</button></div>`;
  return card(`<h3>✦ Coaching scores</h3><p class="muted small">The AI evaluates three specific coaching behaviors (0–3 points). AI scores are suggestions; the facilitator can edit them. Crowd-vote bonus is calculated separately.</p>${statusBlock}<div class="teamlist" style="margin-top:16px">${game.teams.map(t=>`<div class="teamrow"><div><strong>${h(t.name)}</strong><div class="small muted">${game.responses[t.id]?'Response submitted':'No response'} ${game.ai_feedback?.[t.id]?'· ✦ AI reviewed':''}</div></div><div class="scorebtns" aria-label="Score ${h(t.name)}">${[0,1,2,3].map(i=>`<button class="${game.scores[t.id]===i?'selected':''}" data-action="score" data-team="${h(t.id)}" data-score="${i}" title="Award ${i} coaching points">${i}</button>`).join('')}</div></div>`).join('')}</div><p class="note">The AI scores clarity and coaching behavior, not which response sounds most polished. Missing submissions earn zero.</p>`);
 }
+function teamIdentityCard(){
+ const team=game.teams.find(t=>t.id===game.my_team);
+ return card('<span class="pill green">✓ You joined</span><h2 style="margin:14px 0 6px">'+h(team?.name || 'Your team')+'</h2><p class="small muted">Your team can decide on a name together before round 1. Only members of your team can update it.</p><div class="field"><label for="editTeamName">Team name</label><div class="team-edit-actions"><input id="editTeamName" class="input" maxlength="40" value="'+h(team?.name || '')+'" autocomplete="off"><button class="btn secondary" data-action="save-team-name">Save team name</button></div></div><div class="field"><label for="editMemberName">Your name (on the roster)</label><div class="team-edit-actions"><input id="editMemberName" class="input" maxlength="50" value="'+h(game.my_name || '')+'" autocomplete="name"><button class="btn secondary" data-action="save-member-name">Save my name</button></div></div><p class="small muted">Team and player names are locked when the first round begins.</p>','flat');
+}
 function lobby(){
  if(mode==='host')return `${roomPanel()}<div style="margin-top:18px">${aiConnectionPanel()}</div><div class="layouthead"><h1>Waiting for teams to join</h1><button class="btn" data-action="phase" data-phase="start">Start round 1 →</button></div><div class="grid2">${teamRoster()}${card(`<h3>Facilitator quick guide</h3><p class="muted">Plan roughly 35–45 minutes for six rounds.</p><div class="criteria"><div class="criterion"><span class="circle">1</span><span>Allow 2–3 minutes for team discussion and one shared answer.</span></div><div class="criterion"><span class="circle">2</span><span>Open voting so participants can choose an answer from another team.</span></div><div class="criterion"><span class="circle">3</span><span>Reveal coaching criteria, score each team, and advance.</span></div></div><div class="notify" style="margin-top:16px">On a public deployment, invite participants using your HTTPS website link. Do not share the facilitator URL.</div>`)}</div>`;
- return `${participantOverview()}<div class="grid2">${card(`<span class="pill green">✓ You're in!</span><h2 style="margin-top:16px">${h(teamName(game.my_team))}</h2><p class="muted">You're ready to play. The facilitator will start the first scenario soon.</p><p class="small">Keep this page open. Your responses and voting controls will appear automatically when the round begins.</p>`)}${card(`<h3>Your teammates</h3>${game.teams.find(t=>t.id===game.my_team)?.members.map(n=>`<div class="teamrow">👤 ${h(n)}</div>`).join('')}`)}</div>`;
+ return `${participantOverview()}<div class="grid2">${teamIdentityCard()}${card(`<h3>Team members · ${h(teamName(game.my_team))}</h3><p class="small muted">Each person joins with the room QR code and enters their own name.</p><div class="teamlist" style="margin-top:14px">${(game.teams.find(t=>t.id===game.my_team)?.members || []).map(n=>`<div class="teamrow"><span>👤 ${h(n)}</span></div>`).join('')}</div><p class="note">Keep this page open. The facilitator will start the first scenario soon.</p>`)}</div>`;
 }
 function inRound(){
  if(mode==='host'){
@@ -215,7 +220,7 @@ async function refresh(force=false){
   window.SceneAudio?.onGameUpdate(next);
   if(!old||old.round!==next.round||old.phase!==next.phase){draft='';dirty=false;window.currentDraftBase=0;}
   const active=document.activeElement;
-  const typing=active&&(['teamResponse','playerName'].includes(active.id));
+  const typing=active&&(['teamResponse','playerName','joinTeamName','editTeamName','editMemberName'].includes(active.id));
   if(force || signature!==lastSignature){
     if(!typing || !old || old.phase!==next.phase || old.round!==next.round || force){
       lastSignature=signature;
@@ -243,6 +248,18 @@ async function act(e){
    await refresh(true);
   }
   else if(a==='find-room'){await findRoom()}
+  else if(a==='save-team-name'){
+   const name=document.querySelector('#editTeamName')?.value.trim();
+   if(!name){notify('Enter a team name before saving.');return;}
+   await api('team-name',{...credentials,name});
+   await refresh(true);notify('Team name updated for everyone!');
+  }
+  else if(a==='save-member-name'){
+   const name=document.querySelector('#editMemberName')?.value.trim();
+   if(!name){notify('Enter your name before saving.');return;}
+   await api('member-name',{...credentials,name});
+   await refresh(true);notify('Your name has been updated on the team roster.');
+  }
   else if(a==='play-scene-audio'){window.SceneAudio?.start(game,btn.dataset.audioMode)}
   else if(a==='stop-scene-audio'){window.SceneAudio?.stop()}
   else if(a==='show-join-qr'){showJoinQRDialog()}
@@ -285,6 +302,13 @@ async function act(e){
  }catch(err){notify(err.message)}finally{if(btn.isConnected)btn.disabled=false;}
 }
 root.addEventListener('click',act);
+root.addEventListener('change',e=>{
+ if(e.target.matches('input[name="team"]')){
+  const selected=room?.teams.find(t=>t.id===e.target.value);
+  const field=document.querySelector('#joinTeamNameField');
+  if(field)field.hidden=!(selected && selected.count===0 && room?.phase==='lobby');
+ }
+});
 root.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='joinCode'){e.preventDefault();findRoom()}});
 root.addEventListener('input',e=>{
  if(e.target.id==='teamResponse'){

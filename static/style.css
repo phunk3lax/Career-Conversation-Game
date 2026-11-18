@@ -48,3 +48,10 @@
 .scene-audio-status{font-size:13px;font-weight:700;color:#2853a5;margin:12px 0 5px;min-height:18px}
 .scene-audio-disclosure{margin:0;color:#677591;font-size:11px;line-height:1.5}
 @media(max-width:550px){.scene-audio{padding:13px}.scene-audio-controls{flex-direction:column}.scene-audio-controls .btn{width:100%}}
+
+/* Live team signup and editable names */
+.team-edit-actions{display:flex;gap:10px;align-items:center}
+.team-edit-actions .input{min-width:0;flex:1}
+.team-edit-actions .btn{flex-shrink:0;white-space:nowrap}
+#joinTeamNameField[hidden]{display:none}
+@media(max-width:580px){.team-edit-actions{align-items:stretch;flex-direction:column}.team-edit-actions .btn{width:100%}}

@@ -171,7 +171,8 @@ def state(game, host=False, mem=None):
         "code": game["code"], "phase": phase, "round": ri, "round_count": len(SCENARIOS),
         "scenario": scenario, "teams": teams, "responses": visible_responses,
         "submission_count": len(responses), "vote_count": len(votes),
-        "my_team": team_id, "my_vote": votes.get(mem["id"]) if mem else None,
+        "my_team": team_id, "my_name": mem["name"] if mem else None,
+        "my_vote": votes.get(mem["id"]) if mem else None,
         "vote_counts": counts if phase in ("reveal", "finished") else None,
         "scores": scores if host or phase in ("reveal", "finished") else {},
         "standings": standings(game), "is_host": host,
@@ -215,14 +216,28 @@ def handle_api(path, payload):
         if game["phase"] == "finished":
             return error("This game has already ended.")
         team = str(payload.get("team") or "")
-        name = str(payload.get("name") or "").strip()
-        if not (1 <= len(name) <= 30):
-            return error("Enter a name between 1 and 30 characters.")
-        if team not in [t["id"] for t in game["teams"]]:
+        name = " ".join(str(payload.get("name") or "").split())
+        requested_team_name = " ".join(str(payload.get("team_name") or "").split())
+        if not (1 <= len(name) <= 50):
+            return error("Enter your name (1–50 characters).")
+        selected_team = next((t for t in game["teams"] if t["id"] == team), None)
+        if selected_team is None:
             return error("Choose a valid team.")
-        if sum(m["team"] == team for m in game["members"].values()) >= 4:
+        current_count = sum(m["team"] == team for m in game["members"].values())
+        if current_count >= 4:
             return error("That team already has four players. Please choose another.")
+        if requested_team_name:
+            if game["phase"] != "lobby":
+                return error("Team names can only be selected before the game begins.", 409)
+            if current_count:
+                return error("This team already has members. Join it first, then ask a teammate to rename it in the lobby.", 409)
+            if not 2 <= len(requested_team_name) <= 40:
+                return error("Team name must be 2–40 characters.")
+            if any(t["id"] != team and t["name"].casefold() == requested_team_name.casefold() for t in game["teams"]):
+                return error("That team name is already in use. Choose a unique name.", 409)
         mid = secrets.token_urlsafe(24)
+        if requested_team_name:
+            selected_team["name"] = requested_team_name
         game["members"][mid] = {"id": mid, "name": name, "team": team, "joined": now()}
         save()
         return 200, {"member_id": mid, "team": team, "code": code}
@@ -233,6 +248,36 @@ def handle_api(path, payload):
         if not host and not mem:
             return error("Rejoin the room to continue.", 401)
         return 200, state(game, host, mem)
+
+    if path == "/api/team-name":
+        if not mem:
+            return error("Join a team to change its name.", 401)
+        if game["phase"] != "lobby":
+            return error("Team names can only be changed before the first round.", 409)
+        new_name = " ".join(str(payload.get("name") or "").split())
+        if not 2 <= len(new_name) <= 40:
+            return error("Team name must be 2–40 characters.")
+        tid = mem["team"]
+        if any(t["id"] != tid and t["name"].casefold() == new_name.casefold() for t in game["teams"]):
+            return error("That team name is already in use. Choose a unique name.", 409)
+        selected_team = next((t for t in game["teams"] if t["id"] == tid), None)
+        if not selected_team:
+            return error("Your team no longer exists.", 404)
+        selected_team["name"] = new_name
+        save()
+        return 200, {"saved": True, "team_name": new_name}
+
+    if path == "/api/member-name":
+        if not mem:
+            return error("Join a team before editing your name.", 401)
+        if game["phase"] != "lobby":
+            return error("Player names can only be changed before the first round.", 409)
+        new_name = " ".join(str(payload.get("name") or "").split())
+        if not 1 <= len(new_name) <= 50:
+            return error("Enter your name (1–50 characters).")
+        mem["name"] = new_name
+        save()
+        return 200, {"saved": True, "member_name": new_name}
 
     if path == "/api/respond":
         if not mem:
