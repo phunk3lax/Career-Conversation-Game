@@ -80,14 +80,20 @@ async function findRoom(code) {
 }
 function renderJoin(){
   let teams=room.teams;
-  app(`<section class="hero"><div class="eyebrow">Welcome to room ${h(room.code)}</div><h1>Choose your team.</h1><p>Enter your name and choose a team. The first member can give the team a custom name; everyone else joins using their own name so the full team roster is displayed.</p></section>
-    ${card(`<div class="grid2"><div><div class="field" style="margin-top:0"><label for="playerName">Your name</label><input class="input" id="playerName" maxlength="50" placeholder="First and last name" autocomplete="name"></div><div class="kicker" style="margin-bottom:12px">Select a team (maximum four people)</div><div class="teamlist" id="teamSelect">${teams.map((t,i)=>`<label class="teamtile ${t.count>=4?'full':''}" data-team="${h(t.id)}"><span><input type="radio" name="team" value="${h(t.id)}" ${t.count>=4?'disabled':''} style="margin-right:8px"> <strong>${h(t.name)}</strong></span><span class="small muted">${t.count}/4 joined</span></label>`).join('')}</div><div id="joinTeamNameField" class="field" hidden><label for="joinTeamName">Give your team a name (optional)</label><input class="input" id="joinTeamName" maxlength="40" placeholder="e.g. The Growth Gurus" autocomplete="off"><p class="small muted" style="margin:8px 0 0">First person to join this team can choose its name. You can also change it in the lobby.</p></div><button class="btn full" style="margin-top:20px" data-action="join">Join team <span>→</span></button><button class="btn ghost full" style="margin-top:9px" data-action="reload-room">Refresh team availability</button></div><div class="banner"><strong>How the game works</strong><p class="small muted">1. Discuss the employee's situation with your teammates.</p><p class="small muted">2. One member submits your team's response.</p><p class="small muted">3. Vote for another team's answer.</p><p class="small muted">4. Compare coaching techniques and see the scoreboard.</p><hr class="divider"><p class="small muted" style="margin-bottom:0">If the facilitator has already started, you can still join an available team.</p></div></div>`)}`);
+  app(`<section class="hero"><div class="eyebrow">Welcome to room ${h(room.code)}</div><h1>Choose your team.</h1><p>Enter your name and choose a team. The first person joining each team must create its team name. Other members join that named team and add their individual names to the roster.</p></section>
+    ${card(`<div class="grid2"><div><div class="field" style="margin-top:0"><label for="playerName">Your name</label><input class="input" id="playerName" maxlength="50" placeholder="First and last name" autocomplete="name"></div><div class="kicker" style="margin-bottom:12px">Select a team (maximum four people)</div><div class="teamlist" id="teamSelect">${teams.map((t,i)=>`<label class="teamtile ${t.count>=4?'full':''}" data-team="${h(t.id)}"><span><input type="radio" name="team" value="${h(t.id)}" ${t.count>=4?'disabled':''} style="margin-right:8px"> <strong>${h(t.name)}</strong></span><span class="small muted">${t.count}/4 joined</span></label>`).join('')}</div><div id="joinTeamNameField" class="field" hidden><label for="joinTeamName">Your team name (required)</label><input class="input" id="joinTeamName" minlength="2" maxlength="40" placeholder="e.g. The Growth Gurus" autocomplete="off" required><p class="small muted" style="margin:8px 0 0">Required for the first person joining a team. Every team must have a unique name (2–40 characters).</p></div><button class="btn full" style="margin-top:20px" data-action="join">Join team <span>→</span></button><button class="btn ghost full" style="margin-top:9px" data-action="reload-room">Refresh team availability</button></div><div class="banner"><strong>How the game works</strong><p class="small muted">1. Discuss the employee's situation with your teammates.</p><p class="small muted">2. One member submits your team's response.</p><p class="small muted">3. Vote for another team's answer.</p><p class="small muted">4. Compare coaching techniques and see the scoreboard.</p><hr class="divider"><p class="small muted" style="margin-bottom:0">If the facilitator has already started, you can still join an available team.</p></div></div>`)}`);
 }
 async function doJoin(){
   const name=document.querySelector('#playerName')?.value.trim();
   const team=document.querySelector('input[name=team]:checked')?.value;
   const team_name=document.querySelector('#joinTeamNameField:not([hidden]) #joinTeamName')?.value.trim() || '';
   if(!name||!team){notify('Enter your name and select a team.');return;}
+  const firstMember=room?.teams.find(t=>t.id===team)?.count===0;
+  if(firstMember && (team_name.length<2 || team_name.length>40)){
+    notify('A team name is required (2–40 characters) for the first person joining.');
+    document.querySelector('#joinTeamName')?.focus();
+    return;
+  }
   try{
     const result=await api('join',{code:credentials.code,name,team,team_name});
     localStorage.setItem(`cc-member-${credentials.code}`,result.member_id);
@@ -306,7 +312,7 @@ root.addEventListener('change',e=>{
  if(e.target.matches('input[name="team"]')){
   const selected=room?.teams.find(t=>t.id===e.target.value);
   const field=document.querySelector('#joinTeamNameField');
-  if(field)field.hidden=!(selected && selected.count===0 && room?.phase==='lobby');
+  if(field)field.hidden=!(selected && selected.count===0);
  }
 });
 root.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='joinCode'){e.preventDefault();findRoom()}});

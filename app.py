@@ -226,11 +226,11 @@ def handle_api(path, payload):
         current_count = sum(m["team"] == team for m in game["members"].values())
         if current_count >= 4:
             return error("That team already has four players. Please choose another.")
+        if current_count == 0 and not requested_team_name:
+            return error("A team name is required when you are the first person joining a team.")
         if requested_team_name:
-            if game["phase"] != "lobby":
-                return error("Team names can only be selected before the game begins.", 409)
             if current_count:
-                return error("This team already has members. Join it first, then ask a teammate to rename it in the lobby.", 409)
+                return error("This team is already named. Join it without entering another team name.", 409)
             if not 2 <= len(requested_team_name) <= 40:
                 return error("Team name must be 2–40 characters.")
             if any(t["id"] != team and t["name"].casefold() == requested_team_name.casefold() for t in game["teams"]):
