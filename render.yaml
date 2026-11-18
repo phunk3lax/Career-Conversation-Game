@@ -1,0 +1,23 @@
+# Blueprint for a publicly accessible, persistent, single-instance workshop game.
+# A paid Render instance/disk and a separately billed OpenAI API key may be required.
+services:
+  - type: web
+    name: career-conversation-challenge
+    runtime: python
+    plan: starter
+    buildCommand: echo "No dependencies to install"
+    startCommand: python app.py
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GAME_DATA_FILE
+        value: /var/data/game_data.json
+    disk:
+      name: workshop-data
+      mountPath: /var/data
+      sizeGB: 1
