@@ -37,3 +37,14 @@
 .ai-connection-status p{line-height:1.55;margin:8px 0 0}
 .ai-connection-status.ai-status-ok{background:#eefaf4;color:#157049;border-color:#cde9dd}
 .ai-connection-status.ai-status-bad{background:#fff8e8;color:#855717;border-color:#f0ddba}
+
+/* Scenario dialogue narration. Visible to facilitators and participants. */
+.scene-audio{margin:18px 0 16px;padding:17px 18px;background:linear-gradient(120deg,#f5f3ff,#eff6ff);border:1px solid #dcdaf9;border-radius:15px}
+.scene-audio-compact{margin:10px 0 20px}
+.scene-audio-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:15px;color:#1d3159}
+.scene-audio-voices{background:#e2e8ff;border-radius:20px;padding:6px 10px;font-size:11px;font-weight:800;color:#4d519d}
+.scene-audio-intro{margin:10px 0 12px;font-size:13px;line-height:1.55;color:#536584}
+.scene-audio-controls{display:flex;gap:9px;flex-wrap:wrap}
+.scene-audio-status{font-size:13px;font-weight:700;color:#2853a5;margin:12px 0 5px;min-height:18px}
+.scene-audio-disclosure{margin:0;color:#677591;font-size:11px;line-height:1.5}
+@media(max-width:550px){.scene-audio{padding:13px}.scene-audio-controls{flex-direction:column}.scene-audio-controls .btn{width:100%}}

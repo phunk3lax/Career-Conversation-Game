@@ -31,7 +31,7 @@ function topbar(){
 }
 function footer(){return `<footer class="foot">A team-based career coaching practice game · 6 scenarios · Up to 10 teams · AI feedback available</footer>`;}
 function card(content, extra=''){return `<section class="card ${extra}">${content}</section>`;}
-function app(content){root.innerHTML = topbar() + `<main class="shell">${content}${footer()}</main>`;bindControls();renderLobbyQRCode();}
+function app(content){root.innerHTML = topbar() + `<main class="shell">${content}${footer()}</main>`;bindControls();renderLobbyQRCode();window.SceneAudio?.updateButtons();}
 function participantJoinUrl(){return `${location.origin}/?join=${encodeURIComponent(game.code)}`;}
 function paintJoinQR(target,joinUrl){
  if(!target)return;
@@ -63,6 +63,7 @@ async function api(path, payload) {
 }
 function goto(url){history.replaceState(null,'',url);}
 function welcome(){
+  window.SceneAudio?.stop('Ready to play');
   mode='welcome';game=null;credentials=null;
   app(`<section class="hero"><div class="eyebrow">Grow great managers, together</div><h1>Better career conversations start with practice.</h1><p>A live team challenge where managers write their responses to realistic employee situations, vote for strong answers, and receive AI-assisted feedback on their coaching skills.</p></section>
     <div class="grid2">
@@ -102,11 +103,11 @@ function phasebar(){
 }
 function scenarioCard(){
  let s=game.scenario;
- return card(`<div class="votehead"><span class="tag">ROUND ${game.round+1} OF ${game.round_count} · ${h(s.tag)}</span><span class="pill gray">${h(s.level)}</span></div>${phasebar()}<h2 class="roundtitle">${h(s.title)}</h2><img class="scenario-image" src="${h(s.image)}" alt="Employee and manager discussing ${h(s.tag.toLowerCase())} in an office" loading="eager"><div class="quotebox"><span class="kicker">The employee says</span><p class="quote" style="margin:10px 0 0">“${h(s.employee)}”</p></div><div class="kicker">Manager context</div><p style="line-height:1.65;margin:9px 0 19px">${h(s.context)}</p><div class="banner"><strong>Your coaching challenge</strong>${h(s.question)}</div>`);
+ return card(`<div class="votehead"><span class="tag">ROUND ${game.round+1} OF ${game.round_count} · ${h(s.tag)}</span><span class="pill gray">${h(s.level)}</span></div>${phasebar()}<h2 class="roundtitle">${h(s.title)}</h2><img class="scenario-image" src="${h(s.image)}" alt="Employee and manager discussing ${h(s.tag.toLowerCase())} in an office" loading="eager">${window.SceneAudio?.panel(game) || ""}<div class="quotebox"><span class="kicker">The employee says</span><p class="quote" style="margin:10px 0 0">“${h(s.employee)}”</p></div><div class="kicker">Manager context</div><p style="line-height:1.65;margin:9px 0 19px">${h(s.context)}</p><div class="banner"><strong>Your coaching challenge</strong>${h(s.question)}</div>`);
 }
 function scenarioRecap(){
  const s=game.scenario;
- return `<div class="scene-recap"><img src="${h(s.image)}" alt="Manager and employee in a career conversation"><div><div class="kicker">Round ${game.round+1} · ${h(s.tag)}</div><h2>${h(s.title)}</h2><p class="small">“${h(s.employee)}”</p></div></div>`;
+ return `<div class="scene-recap"><img src="${h(s.image)}" alt="Manager and employee in a career conversation"><div><div class="kicker">Round ${game.round+1} · ${h(s.tag)}</div><h2>${h(s.title)}</h2><p class="small">“${h(s.employee)}”</p></div></div>${window.SceneAudio?.panel(game, true) || ""}`;
 }
 function phaseLabel(){return {'lobby':'Lobby · waiting for players','write':'Responses open','vote':'Voting open','reveal':'Debrief and scoring','finished':'Game complete'}[game.phase]}
 function hostOverview(){
@@ -211,6 +212,7 @@ async function refresh(force=false){
   const old=game;
   const signature=JSON.stringify(next);
   game=next;
+  window.SceneAudio?.onGameUpdate(next);
   if(!old||old.round!==next.round||old.phase!==next.phase){draft='';dirty=false;window.currentDraftBase=0;}
   const active=document.activeElement;
   const typing=active&&(['teamResponse','playerName'].includes(active.id));
@@ -241,6 +243,8 @@ async function act(e){
    await refresh(true);
   }
   else if(a==='find-room'){await findRoom()}
+  else if(a==='play-scene-audio'){window.SceneAudio?.start(game,btn.dataset.audioMode)}
+  else if(a==='stop-scene-audio'){window.SceneAudio?.stop()}
   else if(a==='show-join-qr'){showJoinQRDialog()}
   else if(a==='join'){await doJoin()}
   else if(a==='reload-room'){room=await api('room',{code:credentials.code});renderJoin()}

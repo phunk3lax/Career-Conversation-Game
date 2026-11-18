@@ -10,6 +10,7 @@ import threading
 import time
 import urllib.request
 import urllib.error
+from narration import get_scenario_wav, NarrationError
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -544,11 +545,34 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path
+        if path == "/api/scenario-audio":
+            requested = parse_qs(urlparse(self.path).query).get("round", [""])[0]
+            if not requested.isdecimal() or not 0 <= int(requested) < len(SCENARIOS):
+                return self.json_reply(404, {"error": "Unknown scenario."})
+            index = int(requested)
+            try:
+                audio = get_scenario_wav(SCENARIOS[index], index)
+            except NarrationError as exc:
+                print("Studio narration unavailable for scenario %s: %s" % (index + 1, exc), flush=True)
+                return self.json_reply(exc.status, {"error": str(exc)})
+            except Exception as exc:
+                print("Studio narration error:", type(exc).__name__, flush=True)
+                return self.json_reply(502, {"error": "Narration could not be generated. Use device voices."})
+            self.send_response(200)
+            self.send_header("Content-Type", "audio/wav")
+            self.send_header("Content-Length", str(len(audio)))
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Referrer-Policy", "no-referrer")
+            self.end_headers()
+            self.wfile.write(audio)
+            return
         if path == "/api/health":
             return self.json_reply(200, {"ok": True})
         filemap = {"/": ("index.html", "text/html; charset=utf-8"),
                    "/style.css": ("style.css", "text/css; charset=utf-8"),
-                   "/app.js": ("app.js", "application/javascript; charset=utf-8")}
+                   "/app.js": ("app.js", "application/javascript; charset=utf-8"),
+                   "/scene-audio.js": ("scene-audio.js", "application/javascript; charset=utf-8")}
         if path.startswith("/images/") and path in {f"/images/scenario-{i}.webp" for i in range(1, 7)}:
             filename, mimetype = path.lstrip("/"), "image/webp"
         else:
