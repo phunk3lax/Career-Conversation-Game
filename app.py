@@ -550,6 +550,12 @@ class Handler(BaseHTTPRequestHandler):
             if not requested.isdecimal() or not 0 <= int(requested) < len(SCENARIOS):
                 return self.json_reply(404, {"error": "Unknown scenario."})
             index = int(requested)
+            room_code = parse_qs(urlparse(self.path).query).get("code", [""])[0].strip().upper()
+            with LOCK:
+                room = SESSIONS.get(room_code)
+                allowed = bool(room and index <= room["round"])
+            if not allowed:
+                return self.json_reply(403, {"error": "A valid active room code is required for narration."})
             try:
                 audio = get_scenario_wav(SCENARIOS[index], index)
             except NarrationError as exc:

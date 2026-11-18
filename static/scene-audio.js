@@ -72,7 +72,7 @@ window.SceneAudio = (() => {
     const media = new Audio();
     player = media;
     media.preload = 'auto';
-    media.src = `/api/scenario-audio?round=${encodeURIComponent(game.round)}`;
+    media.src = `/api/scenario-audio?round=${encodeURIComponent(game.round)}&code=${encodeURIComponent(game.code)}`;
     setStatus('Preparing character voices…');
     media.onplaying = () => {
       if (id === generation) setStatus('Playing employee and moderator voices…');
