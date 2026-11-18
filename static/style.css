@@ -55,3 +55,6 @@
 .team-edit-actions .btn{flex-shrink:0;white-space:nowrap}
 #joinTeamNameField[hidden]{display:none}
 @media(max-width:580px){.team-edit-actions{align-items:stretch;flex-direction:column}.team-edit-actions .btn{width:100%}}
+
+/* Only the facilitator sees individual team rosters in the leaderboard. */
+.leaderboard-roster{font-size:11px;color:var(--muted);font-weight:500;line-height:1.4;margin:6px 0 0 34px;overflow-wrap:anywhere}
