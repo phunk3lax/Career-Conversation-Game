@@ -18,13 +18,13 @@ EMPLOYEE_VOICES = ('coral', 'sage', 'nova', 'shimmer', 'fable', 'marin')
 EMPLOYEE_DIRECTIONS = (
     'Hopeful but slightly frustrated about career advancement.',
     'Tired, candid and disheartened, not theatrical.',
-    'Eager and confident, curious about taking on leadership.',
+    'An accomplished employee who sounds interested and capable but sincerely concerned about the added time commitment and maintaining work-life balance. Calm, candid, thoughtful; avoid sounding fearful or theatrical.',
     'Frustrated about vague feedback, asking for clarity.',
     'A little hesitant and worried about disappointing a manager.',
     'Uncertain about the future, thoughtful and sincere.',
 )
 MODERATOR_VOICE = 'onyx'
-CACHE_DIR = Path(os.environ.get('SCENE_AUDIO_CACHE_DIR', str(Path(tempfile.gettempdir()) / 'career-game-voices-v1')))
+CACHE_DIR = Path(os.environ.get('SCENE_AUDIO_CACHE_DIR', str(Path(tempfile.gettempdir()) / 'career-game-voices-v2')))
 LOCKS = [threading.Lock() for _ in EMPLOYEE_VOICES]
 MAX_WAV_BYTES = 6_000_000
 

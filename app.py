@@ -43,13 +43,13 @@ SCENARIOS = [
         "takeaway": "Curiosity comes before solutions; don't assume what motivates someone."
     },
     {
-        "image": "/images/scenario-3.webp", "title": "The Future Manager", "tag": "Leadership aspirations", "level": "Moderate",
-        "employee": "My goal is to become a manager like you. I think I'd be good at leading people, and I'd like to make that happen within a year.",
-        "context": "A technically strong employee wants to manage people. They have little experience coaching others or handling conflict.",
-        "question": "How do you encourage the goal and build real leadership readiness?",
-        "criteria": ["Explore the employee's motivation to manage people", "Discuss practical leadership skills and readiness gaps", "Offer opportunities to practice, reflect, and get feedback"],
-        "example": "It's great you're interested in leadership. What parts of managing people appeal to you most? Let's explore what makes someone successful in that role. We can find chances to mentor colleagues or lead a cross-team project, then reflect on what those experiences teach us.",
-        "takeaway": "Distinguish enthusiasm for people leadership from the appeal of a title."
+        "image": "/images/scenario-3.webp", "title": "The Ready First-Time Leader", "tag": "Leadership aspirations", "level": "Moderate",
+        "employee": "I'd really like to move into a people leader role. I think I'm ready, and I believe I could be good at leading a team. My biggest concern is whether I can do it well without it taking over my life or hurting my work/life balance.",
+        "context": "A top-performing employee has demonstrated strong judgment, credibility, and collaboration skills. You believe they have real potential to become an excellent first-time people leader. However, they are concerned that management will require too much time, emotional energy, and after-hours availability.",
+        "question": "How do you encourage the goal, address the work/life balance concern honestly, and help them prepare for a healthy transition into leadership?",
+        "criteria": ["Recognize the employee's strong performance and leadership potential", "Explore concerns about time commitment and work/life balance with empathy and honesty", "Discuss first-time leadership responsibilities and practical preparation while maintaining healthy boundaries"],
+        "example": "I'm really glad you brought this up. You've shown many of the qualities that can make someone a strong people leader, and I can see why you're considering this path. I also appreciate your honesty about work/life balance. Leadership comes with different responsibilities, and it's important to understand what this role requires rather than assume it should take over your life. What parts of leadership excite you, and which time commitments concern you most? Let's talk about what the role really involves here and identify some manageable opportunities to practice leading people, with healthy boundaries, before you make the transition.",
+        "takeaway": "Encourage leadership ambition while honestly addressing workload, boundaries, and long-term sustainability."
     },
     {
         "image": "/images/scenario-4.webp", "title": "The Vague Feedback", "tag": "Feedback and accountability", "level": "Challenging",
