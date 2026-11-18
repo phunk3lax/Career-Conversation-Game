@@ -31,3 +31,9 @@
 .invite-dialog p{color:var(--muted);font-size:14px;line-height:1.5}
 .qr-close{position:absolute;right:12px;top:10px;border:0;background:transparent;color:#51617a;font-size:29px;width:38px;height:38px;cursor:pointer}
 @media(max-width:760px){.roomtop-qr{flex-direction:column;align-items:stretch}.room-invite-copy,.room-invite-actions{flex-basis:auto}.qr-section{align-self:center}.invite-dialog{padding:23px 14px}}
+
+/* Facilitator-only AI scoring diagnostics */
+.ai-connection-status{padding:15px 17px;margin:12px 0 16px;border-radius:12px;border:1px solid #dce6f9;background:#f1f4fe;color:#274064}
+.ai-connection-status p{line-height:1.55;margin:8px 0 0}
+.ai-connection-status.ai-status-ok{background:#eefaf4;color:#157049;border-color:#cde9dd}
+.ai-connection-status.ai-status-bad{background:#fff8e8;color:#855717;border-color:#f0ddba}

@@ -177,6 +177,8 @@ def state(game, host=False, mem=None):
         "ai_scoring": game.get("ai_scoring", {}).get(str(ri), {"status": "not_started" if os.environ.get("OPENAI_API_KEY") else "unconfigured"})
         if phase in ("reveal", "finished") else {"status": "waiting"},
         "ai_feedback": game.get("ai_feedback", {}).get(str(ri), {}) if phase in ("reveal", "finished") else {},
+        "ai_key_detected": bool(os.environ.get("OPENAI_API_KEY", "").strip()) if host else None,
+        "ai_model": os.environ.get("OPENAI_MODEL", "gpt-4.1-mini") if host else None,
         "created_at": game["created_at"],
     }
     return result
@@ -320,6 +322,50 @@ def handle_api(path, payload):
 
 
 
+def describe_ai_http_error(exc):
+    """Return actionable error summaries without including secret values or raw bodies."""
+    code = ""
+    try:
+        content = json.loads(exc.read(8192).decode("utf-8"))
+        code = str((content.get("error") or {}).get("code") or "")
+    except (OSError, ValueError, TypeError, AttributeError, UnicodeError):
+        pass
+    if exc.code == 401:
+        return "OpenAI rejected the API key (HTTP 401). Confirm the active key in Render's service or linked environment group."
+    if exc.code == 403:
+        return "OpenAI denied access (HTTP 403). Review your OpenAI API project's permissions."
+    if exc.code == 404:
+        return "OpenAI cannot access the configured model (HTTP 404). Verify OPENAI_MODEL and project model permissions."
+    if exc.code == 429 and code == "insufficient_quota":
+        return "OpenAI API credits or billing are insufficient (HTTP 429). Visit platform.openai.com to check billing."
+    if exc.code == 429:
+        return "OpenAI API rate limit exceeded (HTTP 429). Try again shortly."
+    if exc.code == 400:
+        return "OpenAI rejected this model request (HTTP 400). Check model capabilities and configuration."
+    if exc.code >= 500:
+        return "OpenAI encountered a temporary server error (HTTP %s). Retry later." % exc.code
+    return "OpenAI API request failed (HTTP %s)." % exc.code
+
+
+def test_ai_scoring_connection():
+    """Facilitator-triggered live scoring test with a synthetic answer and no secret exposure."""
+    model = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+    if not os.environ.get("OPENAI_API_KEY", "").strip():
+        return {"status": "unconfigured", "model": model,
+                "message": "OPENAI_API_KEY is missing in this Render service. Confirm your linked group contains it, then save and deploy."}
+    sample = {"T1": {"text": ("I appreciate your contributions and your interest in growth. "
+                                  "Which next role motivates you? Let's discuss the skills required "
+                                  "and plan a stretch assignment with monthly coaching check-ins.")}}
+    try:
+        result = score_with_ai(SCENARIOS[0], sample)
+        if "T1" not in result:
+            raise RuntimeError("The scoring response was missing the sample team.")
+        return {"status": "ready", "model": model,
+                "message": "Your OpenAI connection worked and the model graded a sample response successfully."}
+    except Exception as exc:
+        return {"status": "error", "model": model, "message": str(exc)[:350]}
+
+
 def score_with_ai(scenario, responses):
     """Score all teams in one API request. Returns validated rubric feedback.
 
@@ -363,9 +409,9 @@ def score_with_ai(scenario, responses):
             raw = json.load(resp)
     except urllib.error.HTTPError as exc:
         # Don't leak provider request details, keys, or response bodies to players.
-        raise RuntimeError(f"AI provider returned HTTP {exc.code}. Check the model, API key, and account billing.") from exc
-    except urllib.error.URLError as exc:
-        raise RuntimeError("Could not reach the AI provider. Check the server's internet access.") from exc
+        raise RuntimeError(describe_ai_http_error(exc)) from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise RuntimeError("OpenAI was unreachable or timed out. Retry shortly.") from exc
     try:
         parsed = json.loads(raw["choices"][0]["message"]["content"])
         items = parsed["results"]
@@ -474,6 +520,19 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(length))
             if not isinstance(payload, dict):
                 raise ValueError("Request body must be an object")
+            if path == "/api/ai-test":
+                with LOCK:
+                    code = str(payload.get("code") or "").upper().strip()
+                    game = SESSIONS.get(code)
+                    if not game or not is_host(game, payload):
+                        return self.json_reply(403, {"error": "Facilitator access is required."})
+                    # Throttle this small billable validation to one test per 45 seconds.
+                    last = game.get("_last_ai_test", 0.0)
+                    if time.monotonic() - last < 45:
+                        return self.json_reply(429, {"error": "AI was just tested. Please try again shortly."})
+                    game["_last_ai_test"] = time.monotonic()
+                self.json_reply(200, test_ai_scoring_connection())
+                return
             with LOCK:
                 status, reply = handle_api(path, payload)
             self.json_reply(status, reply)

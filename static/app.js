@@ -12,6 +12,7 @@ let dirty = false;
 let messageTimer = null;
 let refreshActive = false;
 let aiRequested = false;
+let aiConnectionResult = null;
 
 const h = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const formatText = value => h(value).replace(/\n/g,'<br>');
@@ -119,6 +120,15 @@ function participantOverview(){
 function teamRoster(){
  return card(`<div class="votehead"><h3 style="margin:0">Team roster</h3><span class="small muted">${game.teams.reduce((n,t)=>n+t.count,0)} / ${game.teams.length*4} joined</span></div><div class="teamlist" style="margin-top:14px">${game.teams.map(t=>`<div class="teamrow"><div><strong>${h(t.name)}</strong><div class="small muted">${t.members.length?h(t.members.join(', ')):'Waiting for teammates'}</div></div><span class="pill ${t.count>=4?'green':'gray'}">${t.count}/4</span></div>`).join('')}</div>`,'flat');
 }
+function aiConnectionPanel(){
+ const detected = game.ai_key_detected;
+ const model = game.ai_model || 'gpt-4.1-mini';
+ const status = aiConnectionResult?.status;
+ const heading = status==='ready'?'AI scoring test passed':status==='error'?'AI scoring test failed':status==='unconfigured'?'API key is missing':detected?'API key detected, not yet tested':'API key not detected';
+ const message = aiConnectionResult?.message || (detected?'Test AI scoring to check your API key, billing, and model.':'The running service cannot see OPENAI_API_KEY. Link the environment group containing the key, then save and deploy.');
+ const cssClass = status==='ready'?'ai-status-ok':(!detected||status==='error'||status==='unconfigured'?'ai-status-bad':'');
+ return card('<h3>AI scoring connection</h3><div class="ai-connection-status '+cssClass+'"><strong>'+h(heading)+'</strong><p class="small">'+h(message)+'</p></div><button class="btn secondary" data-action="test-ai">Test AI connection</button><p class="note">The test grades a sample answer using the real API, with a small usage charge. Your key stays on the server. Model: '+h(model)+'</p>','flat');
+}
 function hostMetrics(){
  return `<div class="grid3"><div class="metric"><div class="caption">Teams in the room</div><div class="number">${game.teams.length}</div></div><div class="metric"><div class="caption">Responses submitted</div><div class="number">${game.submission_count}/${game.teams.length}</div></div><div class="metric"><div class="caption">Votes received</div><div class="number">${game.vote_count}</div></div></div>`;
 }
@@ -166,7 +176,7 @@ function grading(){
  return card(`<h3>✦ Coaching scores</h3><p class="muted small">The AI evaluates three specific coaching behaviors (0–3 points). AI scores are suggestions; the facilitator can edit them. Crowd-vote bonus is calculated separately.</p>${statusBlock}<div class="teamlist" style="margin-top:16px">${game.teams.map(t=>`<div class="teamrow"><div><strong>${h(t.name)}</strong><div class="small muted">${game.responses[t.id]?'Response submitted':'No response'} ${game.ai_feedback?.[t.id]?'· ✦ AI reviewed':''}</div></div><div class="scorebtns" aria-label="Score ${h(t.name)}">${[0,1,2,3].map(i=>`<button class="${game.scores[t.id]===i?'selected':''}" data-action="score" data-team="${h(t.id)}" data-score="${i}" title="Award ${i} coaching points">${i}</button>`).join('')}</div></div>`).join('')}</div><p class="note">The AI scores clarity and coaching behavior, not which response sounds most polished. Missing submissions earn zero.</p>`);
 }
 function lobby(){
- if(mode==='host')return `${roomPanel()}<div class="layouthead"><h1>Waiting for teams to join</h1><button class="btn" data-action="phase" data-phase="start">Start round 1 →</button></div><div class="grid2">${teamRoster()}${card(`<h3>Facilitator quick guide</h3><p class="muted">Plan roughly 35–45 minutes for six rounds.</p><div class="criteria"><div class="criterion"><span class="circle">1</span><span>Allow 2–3 minutes for team discussion and one shared answer.</span></div><div class="criterion"><span class="circle">2</span><span>Open voting so participants can choose an answer from another team.</span></div><div class="criterion"><span class="circle">3</span><span>Reveal coaching criteria, score each team, and advance.</span></div></div><div class="notify" style="margin-top:16px">On a public deployment, invite participants using your HTTPS website link. Do not share the facilitator URL.</div>`)}</div>`;
+ if(mode==='host')return `${roomPanel()}<div style="margin-top:18px">${aiConnectionPanel()}</div><div class="layouthead"><h1>Waiting for teams to join</h1><button class="btn" data-action="phase" data-phase="start">Start round 1 →</button></div><div class="grid2">${teamRoster()}${card(`<h3>Facilitator quick guide</h3><p class="muted">Plan roughly 35–45 minutes for six rounds.</p><div class="criteria"><div class="criterion"><span class="circle">1</span><span>Allow 2–3 minutes for team discussion and one shared answer.</span></div><div class="criterion"><span class="circle">2</span><span>Open voting so participants can choose an answer from another team.</span></div><div class="criterion"><span class="circle">3</span><span>Reveal coaching criteria, score each team, and advance.</span></div></div><div class="notify" style="margin-top:16px">On a public deployment, invite participants using your HTTPS website link. Do not share the facilitator URL.</div>`)}</div>`;
  return `${participantOverview()}<div class="grid2">${card(`<span class="pill green">✓ You're in!</span><h2 style="margin-top:16px">${h(teamName(game.my_team))}</h2><p class="muted">You're ready to play. The facilitator will start the first scenario soon.</p><p class="small">Keep this page open. Your responses and voting controls will appear automatically when the round begins.</p>`)}${card(`<h3>Your teammates</h3>${game.teams.find(t=>t.id===game.my_team)?.members.map(n=>`<div class="teamrow">👤 ${h(n)}</div>`).join('')}`)}</div>`;
 }
 function inRound(){
@@ -175,7 +185,7 @@ function inRound(){
  if(game.phase==='finished')return `${intro}${card(`<div class="center"><div style="font-size:45px">🏆</div><h2>Career Conversation Challenge complete!</h2><p class="muted">Thank everyone for practicing candid, empathetic, action-oriented career conversations.</p><button class="btn secondary" data-action="new-game">Create another game</button></div>`)}${scoreboard()}`;
  if(game.phase==='write')return `${intro}<div class="twoCol" style="margin-top:19px">${scenarioCard()}${writingHost()}</div>`;
  if(game.phase==='vote')return `${intro}<div class="twoCol" style="margin-top:19px">${scenarioCard()}${card(`<h3>Participants are voting</h3><p class="muted small">Each person votes for another team. Votes are hidden until the reveal.</p><div class="metric"><div class="caption">Ballots received</div><div class="number">${game.vote_count}</div></div><p class="note">Open the reveal when you are ready. All submitted responses are displayed below.</p>`)}</div><h3 style="margin-top:24px">Submitted responses</h3>${responseCards()}`;
- if(game.phase==='reveal')return `${intro}${scenarioRecap()}<div class="twoCol" style="margin-top:19px">${rubric()}${grading()}</div><h3 style="margin-top:24px">Team responses and votes</h3>${responseCards()}<div style="margin-top:20px">${scoreboard()}</div>`;
+ if(game.phase==='reveal')return `${intro}${aiConnectionPanel()}${scenarioRecap()}<div class="twoCol" style="margin-top:19px">${rubric()}${grading()}</div><h3 style="margin-top:24px">Team responses and votes</h3>${responseCards()}<div style="margin-top:20px">${scoreboard()}</div>`;
  }
  const head=participantOverview();
  if(game.phase==='finished')return `${head}${card(`<div class="center"><div style="font-size:48px">🏆</div><h2>Game complete. Great work!</h2><p class="muted">Take your favorite coaching question into your next one-on-one conversation.</p></div>`)}${scoreboard()}`;
@@ -226,7 +236,7 @@ async function act(e){
   if(a==='create'){
    const count=Number(document.querySelector('#teamCount').value);
    const result=await api('create',{team_count:count});
-   credentials={...result};mode='host';lastSignature='';
+   credentials={...result};mode='host';lastSignature='';aiConnectionResult=null;
    goto(`/?host=${result.code}&key=${encodeURIComponent(result.host_key)}`);
    await refresh(true);
   }
@@ -247,6 +257,12 @@ async function act(e){
   }
   else if(a==='cast-vote'){
    await api('vote',{...credentials,team:btn.dataset.team});await refresh(true);notify('Vote recorded.');
+  }
+  else if(a==='test-ai'){
+   const result=await api('ai-test',{...credentials});
+   aiConnectionResult=result;
+   render();
+   notify(result.status==='ready'?'AI scoring connection works!':'AI scoring needs attention.');
   }
   else if(a==='ai-score'){
    notify('AI coaching review requested. Scores will appear when ready.');
