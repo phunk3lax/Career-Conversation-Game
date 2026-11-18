@@ -30,7 +30,29 @@ function topbar(){
 }
 function footer(){return `<footer class="foot">A team-based career coaching practice game · 6 scenarios · Up to 10 teams · AI feedback available</footer>`;}
 function card(content, extra=''){return `<section class="card ${extra}">${content}</section>`;}
-function app(content){root.innerHTML = topbar() + `<main class="shell">${content}${footer()}</main>`;bindControls();}
+function app(content){root.innerHTML = topbar() + `<main class="shell">${content}${footer()}</main>`;bindControls();renderLobbyQRCode();}
+function participantJoinUrl(){return `${location.origin}/?join=${encodeURIComponent(game.code)}`;}
+function paintJoinQR(target,joinUrl){
+ if(!target)return;
+ target.replaceChildren();
+ if(typeof window.QRCode!=='function'){target.textContent='QR code unavailable. Please share the join link or room code.';return;}
+ try{
+  new window.QRCode(target,{text:joinUrl,width:228,height:228,colorDark:'#142855',colorLight:'#ffffff',correctLevel:window.QRCode.CorrectLevel.M});
+ }catch(err){target.textContent='QR code unavailable. Please share the join link or room code.';}
+}
+function renderLobbyQRCode(){
+ if(mode==='host'&&game?.phase==='lobby')paintJoinQR(document.querySelector('#lobbyJoinQR'),participantJoinUrl());
+}
+function showJoinQRDialog(){
+ if(mode!=='host'||!game)return;
+ const dialog=document.querySelector('#inviteDialog');if(!dialog)return;
+ const url=participantJoinUrl();
+ dialog.querySelector('[data-room-code]').textContent=game.code;
+ const link=dialog.querySelector('[data-join-url]');link.href=url;link.textContent=url;
+ dialog.querySelector('#modalJoinQR').setAttribute('aria-label',`QR code to join room ${game.code}`);
+ paintJoinQR(dialog.querySelector('#modalJoinQR'),url);
+ dialog.showModal();
+}
 async function api(path, payload) {
   const res = await fetch(`/api/${path}`, {method:'POST', headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   let out;
@@ -71,8 +93,8 @@ async function doJoin(){
   }catch(e){notify(e.message)}
 }
 function roomPanel(){
- const joinUrl=`${window.location.origin}/?join=${encodeURIComponent(game.code)}`;
- return `<div class="roomtop"><div><div class="kicker">Your game room code</div><div class="roomcode">${h(game.code)}</div><div class="small muted">Share the join link or project this code</div></div><div><div class="copyline"><button class="btn secondary" data-action="copy-link">Copy participant link ⧉</button><button class="btn ghost" data-action="copy-code">Copy code</button></div><div class="note">Keep the facilitator URL private; it contains the host key.</div></div></div>`;
+ const joinUrl=participantJoinUrl();
+ return `<div class="roomtop roomtop-qr"><div class="room-invite-copy"><div class="kicker">Your game room code</div><div class="roomcode">${h(game.code)}</div><div class="small muted">Participants can scan the QR code with their phone camera to join this room and select a team.</div><div class="join-url">${h(joinUrl)}</div></div><div class="qr-section"><div class="qr-box" id="lobbyJoinQR" role="img" aria-label="QR code to join room ${h(game.code)}"></div><div class="small muted center" style="margin-top:8px">Scan to join instantly</div></div><div class="room-invite-actions"><div class="copyline"><button class="btn secondary" data-action="copy-link">Copy participant link ⧉</button><button class="btn ghost" data-action="copy-code">Copy code</button></div><div class="note">Only the participant link is encoded in the QR code. Keep your facilitator URL private; it contains the host key.</div></div></div>`;
 }
 function phasebar(){
  const round=game.round;return `<div class="phasebar" aria-label="Round ${round+1} of ${game.round_count}">${Array.from({length:game.round_count},(_,i)=>`<span class="${i<round?'done':i===round?'active':''}"></span>`).join('')}</div>`;
@@ -88,7 +110,7 @@ function scenarioRecap(){
 function phaseLabel(){return {'lobby':'Lobby · waiting for players','write':'Responses open','vote':'Voting open','reveal':'Debrief and scoring','finished':'Game complete'}[game.phase]}
 function hostOverview(){
  const controls={lobby:['start','Start round 1 →'],write:['vote','Open voting →'],vote:['reveal','Reveal responses + rubric →'],reveal:[game.round===game.round_count-1?'finish':'next',game.round===game.round_count-1?'Finish game →':'Next scenario →']}[game.phase];
- return `<div class="layouthead"><div><div class="eyebrow">Facilitator dashboard <span class="pill green" style="margin-left:8px">Live</span></div><h1>${h(phaseLabel())}</h1></div><div class="actions">${controls?`<button class="btn" data-action="phase" data-phase="${controls[0]}">${h(controls[1])}</button>`:''}</div></div>`;
+ return `<div class="layouthead"><div><div class="eyebrow">Facilitator dashboard <span class="pill green" style="margin-left:8px">Live</span></div><h1>${h(phaseLabel())}</h1></div><div class="actions"><button class="btn secondary" data-action="show-join-qr">Show join QR ▦</button>${controls?`<button class="btn" data-action="phase" data-phase="${controls[0]}">${h(controls[1])}</button>`:''}</div></div>`;
 }
 function participantOverview(){
  const team=game.teams.find(t=>t.id===game.my_team);
@@ -209,6 +231,7 @@ async function act(e){
    await refresh(true);
   }
   else if(a==='find-room'){await findRoom()}
+  else if(a==='show-join-qr'){showJoinQRDialog()}
   else if(a==='join'){await doJoin()}
   else if(a==='reload-room'){room=await api('room',{code:credentials.code});renderJoin()}
   else if(a==='phase'){
@@ -250,6 +273,8 @@ root.addEventListener('input',e=>{
  }
 });
 window.addEventListener('storage',e=>{if(e.key?.startsWith('cc-member-'))refresh(true)});
+const inviteDialog=document.querySelector('#inviteDialog');
+inviteDialog?.addEventListener('click',e=>{if(e.target===inviteDialog||e.target.closest('[data-close-invite]'))inviteDialog.close()});
 async function init(){
  const url=new URL(location.href);
  const host=url.searchParams.get('host');

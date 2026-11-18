@@ -12,6 +12,17 @@
     <main class="loading">Opening Career Conversation Challenge…</main>
   </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <dialog id="inviteDialog" class="invite-dialog" aria-labelledby="inviteDialogTitle">
+    <button type="button" class="qr-close" data-close-invite aria-label="Close QR code">×</button>
+    <div class="kicker">Invite your teams</div>
+    <h2 id="inviteDialogTitle">Scan to join the game</h2>
+    <p>Open your phone camera and scan the code. You'll go directly to team selection.</p>
+    <div id="modalJoinQR" class="qr-box" role="img" aria-label="QR code to join the game"></div>
+    <div class="kicker">Room <strong data-room-code></strong></div>
+    <a class="join-url" data-join-url target="_blank" rel="noopener noreferrer"></a>
+    <div class="note">QR codes contain only the participant join link, never the facilitator key.</div>
+  </dialog>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
   <script src="/app.js" defer></script>
 </body>
 </html>
