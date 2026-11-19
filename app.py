@@ -26,7 +26,8 @@ ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 SCENARIOS = [
     {
         "image": "/images/scenario-1.webp", "title": "The Ambitious Employee", "tag": "Career advancement", "level": "Moderate",
-        "employee_voice_style": "male", "moderator_voice_style": "male",        "employee": "I've been in my role for three years, and I feel like I'm ready for a promotion. I don't understand why I haven't been given the opportunity yet.",
+        "employee_voice_style": "male", "moderator_voice_style": "male",
+        "employee": "I've been in my role for three years, and I feel like I'm ready for a promotion. I don't understand why I haven't been given the opportunity yet.",
         "context": "A high performer believes their results should qualify them for promotion. You know they need more experience influencing stakeholders across the organization.",
         "question": "What would you say without promising a promotion?",
         "criteria": ["Recognize their contributions and ambition", "Explore next-level capabilities and career goals", "Agree on concrete development actions without guarantees"],
@@ -35,7 +36,8 @@ SCENARIOS = [
     },
     {
         "image": "/images/scenario-2.webp", "title": "The Disengaged High Performer", "tag": "Motivation and retention", "level": "Challenging",
-        "employee_voice_style": "male", "moderator_voice_style": "male",        "employee": "I used to be excited about my job, but lately I feel like I'm doing the same things over and over. I'm not sure I see a future for myself here.",
+        "employee_voice_style": "male", "moderator_voice_style": "male",
+        "employee": "I used to be excited about my job, but lately I feel like I'm doing the same things over and over. I'm not sure I see a future for myself here.",
         "context": "Your strongest team member has become quiet in meetings. Their results are good, but enthusiasm is fading, and you worry they may leave.",
         "question": "How do you open a constructive career conversation?",
         "criteria": ["Demonstrate empathy and curiosity rather than jumping to solutions", "Ask what energizes the employee and what feels missing", "Explore opportunities together and plan a follow-up"],
@@ -44,7 +46,8 @@ SCENARIOS = [
     },
     {
         "image": "/images/scenario-3.webp", "title": "The Ready First-Time Leader", "tag": "Leadership aspirations", "level": "Moderate",
-        "employee_voice_style": "male", "moderator_voice_style": "male",        "employee": "I'd really like to move into a people leader role. I think I'm ready, and I believe I could be good at leading a team. My biggest concern is whether I can do it well without it taking over my life or hurting my work/life balance.",
+        "employee_voice_style": "male", "moderator_voice_style": "male",
+        "employee": "I'd really like to move into a people leader role. I think I'm ready, and I believe I could be good at leading a team. My biggest concern is whether I can do it well without it taking over my life or hurting my work/life balance.",
         "context": "A top-performing employee has demonstrated strong judgment, credibility, and collaboration skills. You believe they have real potential to become an excellent first-time people leader. However, they are concerned that management will require too much time, emotional energy, and after-hours availability.",
         "question": "How do you encourage the goal, address the work/life balance concern honestly, and help them prepare for a healthy transition into leadership?",
         "criteria": ["Recognize the employee's strong performance and leadership potential", "Explore concerns about time commitment and work/life balance with empathy and honesty", "Discuss first-time leadership responsibilities and practical preparation while maintaining healthy boundaries"],
@@ -53,7 +56,8 @@ SCENARIOS = [
     },
     {
         "image": "/images/scenario-4.webp", "title": "The Vague Feedback", "tag": "Feedback and accountability", "level": "Challenging",
-        "employee_voice_style": "female", "moderator_voice_style": "male",        "employee": "I keep hearing that I need to be more strategic, but nobody can explain what that means. It feels unfair.",
+        "employee_voice_style": "female", "moderator_voice_style": "male",
+        "employee": "I keep hearing that I need to be more strategic, but nobody can explain what that means. It feels unfair.",
         "context": "A capable employee wants a senior role, but feedback suggests they focus on execution more than long-term priorities. Past guidance was nonspecific.",
         "question": "How can you make the feedback useful instead of defensive?",
         "criteria": ["Acknowledge the feedback has lacked clarity", "Offer specific, observable examples and impact", "Co-create ways to demonstrate strategic thinking"],
@@ -62,7 +66,8 @@ SCENARIOS = [
     },
     {
         "image": "/images/scenario-5.webp", "title": "The Internal Transfer", "tag": "Talent mobility", "level": "Moderate",
-        "employee_voice_style": "male", "moderator_voice_style": "female",        "employee": "I think I'd like to move into another department, but I'm worried you'll be disappointed if I leave the team.",
+        "employee_voice_style": "male", "moderator_voice_style": "female",
+        "employee": "I think I'd like to move into another department, but I'm worried you'll be disappointed if I leave the team.",
         "context": "A valuable employee is interested in a different function. Losing them would be challenging for your team's short-term delivery.",
         "question": "How do you support growth while planning for your team?",
         "criteria": ["Create safety for open career discussions", "Explore the employee's interests and possible paths", "Support next steps while planning responsibly for continuity"],
@@ -71,7 +76,8 @@ SCENARIOS = [
     },
     {
         "image": "/images/scenario-6.webp", "title": "The Uncertain Career Path", "tag": "Career discovery", "level": "Foundational",
-        "employee_voice_style": "male", "moderator_voice_style": "male",        "employee": "Everyone asks about my five-year plan, but I honestly have no idea. I just know I don't want to stay in this role forever.",
+        "employee_voice_style": "male", "moderator_voice_style": "male",
+        "employee": "Everyone asks about my five-year plan, but I honestly have no idea. I just know I don't want to stay in this role forever.",
         "context": "A strong employee has no defined career destination and feels pressure to present a plan to leadership.",
         "question": "How do you help them explore without prescribing their path?",
         "criteria": ["Normalize uncertainty and reinforce agency", "Ask about strengths, interests, and energizing work", "Agree on low-risk experiences to explore possibilities"],
