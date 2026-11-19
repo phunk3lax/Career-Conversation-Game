@@ -52,7 +52,7 @@ window.SceneAudio = (() => {
         <button type="button" class="btn ghost smallbtn" data-action="stop-scene-audio" ${current ? '' : 'disabled'}>■ Stop</button>
       </div>
       <div class="scene-audio-status" role="status" aria-live="polite" data-scene-audio-status>${message}</div>
-      <p class="scene-audio-disclosure">Character voices are AI-generated and use your connected OpenAI API (separately billed, clips cached). Device voices are free and vary by phone or computer. Playback is optional.</p>
+      <p class="scene-audio-disclosure">AI-generated character voices are selected to match the people pictured, not to imitate their actual voices. Uses your connected OpenAI API (separately billed; clips cached). Free device voices are selected where available and may differ by browser. Playback is optional.</p>
     </section>`;
   }
 
@@ -72,7 +72,7 @@ window.SceneAudio = (() => {
     const media = new Audio();
     player = media;
     media.preload = 'auto';
-    media.src = `/api/scenario-audio?round=${encodeURIComponent(game.round)}&code=${encodeURIComponent(game.code)}`;
+    media.src = `/api/scenario-audio?round=${encodeURIComponent(game.round)}&code=${encodeURIComponent(game.code)}&voice_version=3`;
     setStatus('Preparing character voices…');
     media.onplaying = () => {
       if (id === generation) setStatus('Playing employee and moderator voices…');
@@ -95,14 +95,26 @@ window.SceneAudio = (() => {
     }
   }
 
-  function chooseDeviceVoices(index) {
+  function chooseDeviceVoices(index, scenario) {
     const available = window.speechSynthesis.getVoices();
     const english = available.filter(v => /^en(?:-|$)/i.test(v.lang));
     const usable = english.length ? english : available;
-    const moderator = usable.find(v => /daniel|david|alex|guy|aaron|male|fred/i.test(v.name)) || usable[0] || null;
-    const employees = usable.filter(v => !moderator || v.voiceURI !== moderator.voiceURI);
-    const pool = employees.length ? employees : usable;
-    return {employee: pool.length ? pool[index % pool.length] : null, moderator};
+
+    // Browsers do not expose voice gender. Prefer voices with recognizable
+    // masculine/feminine names, then use pitch as a best-effort fallback.
+    const maleNames = /\b(?:alex|aaron|alfie|andrew|arthur|brian|charles|christopher|daniel|david|davis|eric|fred|george|guy|jacob|james|john|mark|matthew|oliver|roger|ryan|steffan|thomas|tony|male)\b/i;
+    const femaleNames = /\b(?:alice|ana|aria|ava|clara|elizabeth|emma|fiona|hazel|jenny|karen|libby|lisa|michelle|mia|moira|nancy|natasha|samantha|sarah|sonia|susan|tessa|victoria|zira|female)\b/i;
+    function pick(style, excluded, offset) {
+      const pattern = style === 'female' ? femaleNames : maleNames;
+      const matched = usable.filter(v => pattern.test(v.name));
+      const pool = matched.length ? matched : usable;
+      const distinct = pool.filter(v => !excluded || v.voiceURI !== excluded.voiceURI);
+      const options = distinct.length ? distinct : pool;
+      return options.length ? options[offset % options.length] : null;
+    }
+    const employee = pick(scenario.employee_voice_style || 'male', null, index);
+    const moderator = pick(scenario.moderator_voice_style || 'male', employee, index + 2);
+    return {employee, moderator};
   }
 
   function playDeviceSpeech(game, id) {
@@ -111,19 +123,19 @@ window.SceneAudio = (() => {
       return;
     }
     const synth = window.speechSynthesis;
-    const {employee: employeeVoice, moderator: moderatorVoice} = chooseDeviceVoices(game.round);
+    const {employee: employeeVoice, moderator: moderatorVoice} = chooseDeviceVoices(game.round, game.scenario);
     const employee = new SpeechSynthesisUtterance(game.scenario.employee);
     employee.lang = 'en-US';
     if (employeeVoice) employee.voice = employeeVoice;
     employee.rate = 0.96;
-    employee.pitch = [1.14, 1.04, 1.18, 0.96, 1.11, 1.06][game.round % 6];
+    employee.pitch = game.scenario.employee_voice_style === 'female' ? 1.12 : 0.82;
 
     const question = `You're the manager in this conversation. ${game.scenario.question} How would you respond?`;
     const moderator = new SpeechSynthesisUtterance(question);
     moderator.lang = 'en-US';
     if (moderatorVoice) moderator.voice = moderatorVoice;
     moderator.rate = 0.91;
-    moderator.pitch = 0.77;
+    moderator.pitch = game.scenario.moderator_voice_style === 'female' ? 1.12 : 0.78;
 
     employee.onstart = () => { if (id === generation) setStatus('Employee speaking…'); };
     employee.onend = () => {

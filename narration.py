@@ -13,8 +13,12 @@ import urllib.request
 import wave
 from pathlib import Path
 
-# Each scene has a distinct employee performer; moderator is consistent throughout.
-EMPLOYEE_VOICES = ('coral', 'sage', 'nova', 'shimmer', 'fable', 'marin')
+# Each voice is chosen to fit the characters depicted in the corresponding scenario image.
+# Scene 4 has a feminine-sounding employee; scene 5 has a feminine-sounding moderator.
+# The other illustrated speakers use masculine-sounding voices. These are synthetic
+# performances, not replicas of the real people shown in the pictures.
+EMPLOYEE_VOICES = ('onyx', 'echo', 'ash', 'nova', 'fable', 'verse')
+MODERATOR_VOICES = ('echo', 'onyx', 'echo', 'onyx', 'shimmer', 'onyx')
 EMPLOYEE_DIRECTIONS = (
     'Hopeful but slightly frustrated about career advancement.',
     'Tired, candid and disheartened, not theatrical.',
@@ -23,8 +27,7 @@ EMPLOYEE_DIRECTIONS = (
     'A little hesitant and worried about disappointing a manager.',
     'Uncertain about the future, thoughtful and sincere.',
 )
-MODERATOR_VOICE = 'onyx'
-CACHE_DIR = Path(os.environ.get('SCENE_AUDIO_CACHE_DIR', str(Path(tempfile.gettempdir()) / 'career-game-voices-v2')))
+CACHE_DIR = Path(os.environ.get('SCENE_AUDIO_CACHE_DIR', str(Path(tempfile.gettempdir()) / 'career-game-voices-v3')))
 LOCKS = [threading.Lock() for _ in EMPLOYEE_VOICES]
 MAX_WAV_BYTES = 6_000_000
 
@@ -94,6 +97,10 @@ def _join_wav(employee_wav, moderator_wav):
 def get_scenario_wav(scenario, index):
     if not 0 <= index < len(EMPLOYEE_VOICES):
         raise NarrationError('Unknown scenario.', 404)
+    employee_style = scenario.get('employee_voice_style', 'male')
+    moderator_style = scenario.get('moderator_voice_style', 'male')
+    if employee_style not in ('male', 'female') or moderator_style not in ('male', 'female'):
+        raise NarrationError('Invalid narration voice configuration.', 500)
     filename = CACHE_DIR / ('scenario-%s-v1.wav' % (index + 1))
     with LOCKS[index]:
         if filename.is_file():
@@ -101,14 +108,18 @@ def get_scenario_wav(scenario, index):
         employee = _generate_voice(
             scenario['employee'], EMPLOYEE_VOICES[index],
             'Act as an employee in a realistic private workplace conversation. '
-            'Speak naturally, personally and conversationally. ' + EMPLOYEE_DIRECTIONS[index] +
+            'Speak naturally, personally and conversationally, in a natural ' +
+            ('masculine' if employee_style == 'male' else 'feminine') +
+            ' adult voice matching the employee pictured. ' + EMPLOYEE_DIRECTIONS[index] +
             ' Speak only the supplied words; do not add a speaker label.'
         )
         moderator = _generate_voice(
-            moderator_text(scenario), MODERATOR_VOICE,
+            moderator_text(scenario), MODERATOR_VOICES[index],
             'Act as a calm, confident workshop moderator addressing managers. '
-            'Use an inviting, clear, thoughtful tone. Pause naturally before the closing question. '
-            'Speak only the supplied words; do not add a speaker label.'
+            'Speak with a natural ' + ('masculine' if moderator_style == 'male' else 'feminine') +
+            ' adult voice matching the listener pictured. Use an inviting, clear, thoughtful tone. '
+            'Pause naturally before the closing question. Speak only the supplied words; '
+            'do not add a speaker label.'
         )
         combined = _join_wav(employee, moderator)
         if len(combined) > 15_000_000:
